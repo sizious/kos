@@ -16,13 +16,15 @@ On **macOS** system, the package manager is the `brew` tool, which is provided
 by the [Homebrew project](https://brew.sh).
  
 If you never used the `brew` tool before, you will need to install it, under
-your username.
+your user profile.
 
-All the operations in this document should be executed with the `root` user. To
-do that, from a **Terminal** window, input:
-
+All the operations in this document (excepting the `brew` installation or
+usage) should be executed with the `root` user. To do that, from a
+**Terminal** window, input:
+	```
 	sudo -s
-
+	```
+ 
 If you don't want to use the `root` user, another option is to use the `sudo`
 command. In that case, you will need to add the `sudo` command before entering
 all the commands specified below.
