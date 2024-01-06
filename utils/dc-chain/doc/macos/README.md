@@ -3,10 +3,10 @@
 This document contains all the instructions to create a fully working
 toolchains targeting the **Sega Dreamcast** system under **macOS**.
 
-This document was written when using **macOS** (`10.14 Mojave`) but it should be
-applicable on all **macOS** systems. Note that Apple introduced some breaking
-changes in `10.14 Mojave`; so starting from that version, some header files have
-moved. They have been removed in `10.15 Catalina` and later versions.
+This document was initially written while using **macOS** (`10.14 Mojave`) but
+it should be applicable on all **macOS** systems. Note that Apple introduced some
+breaking changes in `10.14 Mojave`; so starting from that version, some header
+files have moved. They have been removed in `10.15 Catalina` and later versions.
 **dc-chain** supports all modern macOS versions, including `pre-Mojave`
 releases.
 
@@ -59,14 +59,12 @@ project. This is normal and doesn't affect the **dc-chain** process.
 
 As already said in the introduction, the **macOS** system doesn't come with a
 package manager, but fortunately, the [Homebrew project](https://brew.sh) is
-here to fill this gap:
+here to fill this gap.
 
-1. Open a **Terminal** window.
+Click [here](https://brew.sh) and follow the instructions. Please note,
+all operations done using **Homebrew** should be done under your user account,
+`root` is not allowed.
 
-2. Execute the following:
-	```
-	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-	```
 **Homebrew** is now installed. You can check if it's working by entering
 `brew --version`.
 
@@ -74,9 +72,9 @@ here to fill this gap:
 
 The packages below need to be installed:
 ```
-brew install libjpeg libpng libelf
+brew install libjpeg libpng libelf texinfo
 ```
-All the other required packages have already been installed, i.e. `git`, `svn`
+All the other required packages have already been installed, i.e. `git`
 or `python`.
 
 ## Preparing the environment installation ##
