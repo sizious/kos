@@ -15,8 +15,8 @@ releases.
 On **macOS** system, the package manager is the `brew` tool, which is provided
 by the [Homebrew project](https://brew.sh).
  
-If you never used the `brew` tool before, you will need to install it. The
-procedure to do that is given below.
+If you never used the `brew` tool before, you will need to install it, under
+your username, before switching to `root`.
 
 All the operations in this document should be executed with the `root` user. To
 do that, from a **Terminal** window, input:
