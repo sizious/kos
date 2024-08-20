@@ -1,4 +1,4 @@
-name: Makefile CI
+name: KallistiOS
 
 run-name: "${{ github.actor }} is testing out GitHub Actions \U0001F680"
 
