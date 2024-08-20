@@ -11,7 +11,7 @@ on:
 env:
   KOS_PORTS_URL: https://github.com/KallistiOS/kos-ports.git
   GIT_CLONE_PATH: ${{ github.workspace }}
-  ENVIRON_SH: ${{ github.workspace }}/kos/environ.sh
+  ENVIRON_SH: environ.sh
   KOS_PORTS_PATH: ${{ github.workspace }}/kos/kos-ports
   KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
 
@@ -27,7 +27,8 @@ jobs:
       - name: Building KallistiOS
         run: |
           ls -la
-          cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
+          echo $GIT_CLONE_PATH
+          cp doc/$ENVIRON_SH.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
           sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH
           cat $ENVIRON_SH
@@ -52,7 +53,7 @@ jobs:
             utils/vqenc/vqenc
             utils/wav2adpcm/wav2adpcm
             utils/dcdis/src/dcdis
-            environ.sh
+            $ENVIRON_SH
 
   build_kos_ports:
     name: Build KallistiOS Ports  
@@ -88,5 +89,5 @@ jobs:
           cd $KOS_PORTS_PATH
           tar -xvf $KOS_PORTS_PACKAGE
           source $ENVIRON_SH
-          cd $GIT_CLONE_PATH/examples
+          cd examples
           make
