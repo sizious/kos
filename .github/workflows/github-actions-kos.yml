@@ -39,6 +39,8 @@ jobs:
           echo ---
           source $ENVIRON_SH
           kos-cc --version
+          wget https://github.com/vim/vim/blob/master/src/xxd/xxd.c
+          gcc xxd.c -o xxd
           make
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
