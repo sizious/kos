@@ -29,7 +29,7 @@ jobs:
           echo $GIT_CLONE_PATH
           uname -a
           cat /etc/os-release
-          apk add coreutils-fmt
+          apk add coreutils coreutils-fmt
           cp doc/$ENVIRON_SH.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/${GIT_CLONE_PATH}/' $ENVIRON_SH
           sed -i 's/\${KOS_BASE}\/..\/kos-ports/${KOS_PORTS_PATH}/' $ENVIRON_SH
