@@ -41,6 +41,7 @@ jobs:
           kos-cc --version
           wget https://raw.githubusercontent.com/vim/vim/master/src/xxd/xxd.c
           gcc xxd.c -o xxd
+          ./xxd -v
           make
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
