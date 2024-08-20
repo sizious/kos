@@ -1,6 +1,6 @@
 name: KallistiOS
 
-run-name: "${{ github.actor }} is testing out GitHub Actions \U0001F680"
+run-name: ${{ github.actor }} is testing out GitHub Actions
 
 on:
   push:
