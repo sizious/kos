@@ -4,19 +4,20 @@ run-name: ${{ github.actor }} is testing out GitHub Actions
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches: [ $default-branch, create-github-actions ]
   pull_request:
-    branches: [ $default-branch ]
+    branches: [ $default-branch, create-github-actions ]
 
 env:
-  KOS_PORTS_URL: 'https://github.com/KallistiOS/kos-ports.git'
-  GIT_CLONE_PATH: '${{ github.workspace }}/kos'
-  ENVIRON_SH: '${{ github.workspace }}/kos/environ.sh'
-  KOS_PORTS_PATH: '${{ github.workspace }}/kos/kos-ports'
-  KOS_PORTS_PACKAGE: '${{ github.workspace }}/kos/kos-ports.tar.xz'
+  KOS_PORTS_URL: https://github.com/KallistiOS/kos-ports.git
+  GIT_CLONE_PATH: ${{ github.workspace }}/kos
+  ENVIRON_SH: ${{ github.workspace }}/kos/environ.sh
+  KOS_PORTS_PATH: ${{ github.workspace }}/kos/kos-ports
+  KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
 
 jobs:
   build_kos:
+    runs-on: ubuntu-latest
     container:
       image: segadreamcast/toolchains:latest
     steps:
@@ -51,7 +52,10 @@ jobs:
             environ.sh
 
   build_kos_ports:
-    needs: [build_kos]
+    needs: [ build_kos ]
+    runs-on: ubuntu-latest
+    container:
+      image: segadreamcast/toolchains:latest    
     steps:
       - name: Building KallistiOS Ports
         run: |
@@ -69,7 +73,10 @@ jobs:
             $KOS_PORTS_PACKAGE
 
   test:
-    needs: [build_kos,build_kos_ports]
+    needs: [ build_kos, build_kos_ports ]
+    runs-on: ubuntu-latest
+    container:
+      image: segadreamcast/toolchains:latest    
     steps:
       - run: |
           mkdir -p ${KOS_PORTS_PATH}
