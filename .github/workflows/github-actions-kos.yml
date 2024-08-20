@@ -1,38 +1,36 @@
 name: Makefile CI
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+
+run-name: "${{ github.actor }} is testing out GitHub Actions \U0001F680"
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches:
+      - $default-branch
   pull_request:
-    branches: [ $default-branch ]
+    branches:
+      - $default-branch
 
 env:
-  KOS_PORTS_URL: https://github.com/KallistiOS/kos-ports.git
-  GIT_CLONE_PATH: ${{ github.workspace }}/kos
-  ENVIRON_SH: ${{ github.workspace }}/kos/environ.sh
-  KOS_PORTS_PATH: ${{ github.workspace }}/kos/kos-ports
-  KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
+  KOS_PORTS_URL: 'https://github.com/KallistiOS/kos-ports.git'
+  GIT_CLONE_PATH: '${{ github.workspace }}/kos'
+  ENVIRON_SH: '${{ github.workspace }}/kos/environ.sh'
+  KOS_PORTS_PATH: '${{ github.workspace }}/kos/kos-ports'
+  KOS_PORTS_PACKAGE: '${{ github.workspace }}/kos/kos-ports.tar.xz'
 
 jobs:
   build_kos:
-#    runs-on: ubuntu-latest
-
-    container: 
-        image: segadreamcast/toolchains:latest
-
+    container:
+      image: 'segadreamcast/toolchains:latest'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Building KallistiOS
         run: |
-            cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
-            sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
-            sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH  
-            source $ENVIRON_SH
-            make
-
+          cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
+          sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
+          sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH  
+          source $ENVIRON_SH
+          make
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -54,17 +52,18 @@ jobs:
             utils/dcdis/src/dcdis
             environ.sh
 
-   build_kos_ports:
-     needs: [build_kos]
-     steps:
+  build_kos_ports:
+    needs:
+      - build_kos
+    steps:
       - name: Building KallistiOS Ports
         run: |
-            source $ENVIRON_SH
-            git clone $KOS_PORTS_URL $KOS_PORTS_PATH
-            cd $KOS_PORTS_PATH/utils
-            ./build-all.sh
-            cd $KOS_PORTS_PATH
-            tar -cvzhf $KOS_PORTS_PACKAGE include/* lib/*.a
+          source $ENVIRON_SH
+          git clone $KOS_PORTS_URL $KOS_PORTS_PATH
+          cd $KOS_PORTS_PATH/utils
+          ./build-all.sh
+          cd $KOS_PORTS_PATH
+          tar -cvzhf $KOS_PORTS_PACKAGE include/* lib/*.a
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,13 +71,15 @@ jobs:
           path: |
             $KOS_PORTS_PACKAGE
 
-   test:
-    needs: [build_kos, build_kos_ports]
+  test:
+    needs:
+      - build_kos
+      - build_kos_ports
     steps:
       - run: |
-        mkdir -p ${KOS_PORTS_PATH}
-        cd ${KOS_PORTS_PATH}
-        tar -xvf ${KOS_PORTS_PACKAGE}
-        source ${ENVIRON_SH}
-        cd ${GIT_CLONE_PATH}/examples
-        make
+          mkdir -p ${KOS_PORTS_PATH}
+          cd ${KOS_PORTS_PATH}
+          tar -xvf ${KOS_PORTS_PACKAGE}
+          source ${ENVIRON_SH}
+          cd ${GIT_CLONE_PATH}/examples
+          make
