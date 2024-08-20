@@ -17,6 +17,7 @@ env:
 
 jobs:
   build_kos:
+    runs-on: ubuntu-latest
     container:
       image: segadreamcast/toolchains:latest
     steps:
@@ -52,6 +53,9 @@ jobs:
 
   build_kos_ports:
     needs: [build_kos]
+    runs-on: ubuntu-latest
+    container:
+      image: segadreamcast/toolchains:latest    
     steps:
       - name: Building KallistiOS Ports
         run: |
@@ -70,6 +74,9 @@ jobs:
 
   test:
     needs: [build_kos,build_kos_ports]
+    runs-on: ubuntu-latest
+    container:
+      image: segadreamcast/toolchains:latest    
     steps:
       - run: |
           mkdir -p ${KOS_PORTS_PATH}
