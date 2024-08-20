@@ -28,7 +28,6 @@ jobs:
           ls -la
           echo $GIT_CLONE_PATH
           uname -a
-          lsb_release -a
           cat /etc/os-release
           cp doc/$ENVIRON_SH.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
