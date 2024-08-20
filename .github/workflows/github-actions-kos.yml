@@ -10,13 +10,14 @@ on:
 
 env:
   KOS_PORTS_URL: https://github.com/KallistiOS/kos-ports.git
-  GIT_CLONE_PATH: ${{ github.workspace }}/kos
+  GIT_CLONE_PATH: ${{ github.workspace }}
   ENVIRON_SH: ${{ github.workspace }}/kos/environ.sh
   KOS_PORTS_PATH: ${{ github.workspace }}/kos/kos-ports
   KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
 
 jobs:
   build_kos:
+    name: Build KallistiOS
     runs-on: ubuntu-latest
     container:
       image: segadreamcast/toolchains:latest
@@ -28,7 +29,8 @@ jobs:
           ls -la
           cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
-          sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH  
+          sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH
+          cat $ENVIRON_SH
           source $ENVIRON_SH
           make
       - name: Archive production artifacts
@@ -53,6 +55,7 @@ jobs:
             environ.sh
 
   build_kos_ports:
+    name: Build KallistiOS Ports  
     needs: [ build_kos ]
     runs-on: ubuntu-latest
     container:
@@ -74,15 +77,16 @@ jobs:
             $KOS_PORTS_PACKAGE
 
   test:
+    name: Test
     needs: [ build_kos, build_kos_ports ]
     runs-on: ubuntu-latest
     container:
       image: segadreamcast/toolchains:latest    
     steps:
       - run: |
-          mkdir -p ${KOS_PORTS_PATH}
-          cd ${KOS_PORTS_PATH}
-          tar -xvf ${KOS_PORTS_PACKAGE}
-          source ${ENVIRON_SH}
-          cd ${GIT_CLONE_PATH}/examples
+          mkdir -p $KOS_PORTS_PATH
+          cd $KOS_PORTS_PATH
+          tar -xvf $KOS_PORTS_PACKAGE
+          source $ENVIRON_SH
+          cd $GIT_CLONE_PATH/examples
           make
