@@ -1,0 +1,80 @@
+name: KallistiOS
+
+run-name: ${{ github.actor }} is testing out GitHub Actions
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+env:
+  KOS_PORTS_URL: https://github.com/KallistiOS/kos-ports.git
+  GIT_CLONE_PATH: ${{ github.workspace }}/kos
+  ENVIRON_SH: ${{ github.workspace }}/kos/environ.sh
+  KOS_PORTS_PATH: ${{ github.workspace }}/kos/kos-ports
+  KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
+
+jobs:
+  build_kos:
+    container:
+      image: segadreamcast/toolchains:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Building KallistiOS
+        run: |
+          cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
+          sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
+          sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH  
+          source $ENVIRON_SH
+          make
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kallistios
+          path: |
+            addons/lib/dreamcast/*.a
+            lib/dreamcast/*.a
+            utils/bin2c/bin2c  
+            utils/bincnv/bincnv
+            utils/dcbumpgen/dcbumpgen
+            utils/genromfs/genromfs
+            utils/isotest/isotest
+            utils/kmgenc/kmgenc
+            utils/makeip/makeip
+            utils/rdtest/rdtest
+            utils/scramble/scramble
+            utils/vqenc/vqenc
+            utils/wav2adpcm/wav2adpcm
+            utils/dcdis/src/dcdis
+            environ.sh
+
+  build_kos_ports:
+    needs: [build_kos]
+    steps:
+      - name: Building KallistiOS Ports
+        run: |
+          source $ENVIRON_SH
+          git clone $KOS_PORTS_URL $KOS_PORTS_PATH
+          cd $KOS_PORTS_PATH/utils
+          ./build-all.sh
+          cd $KOS_PORTS_PATH
+          tar -cvzhf $KOS_PORTS_PACKAGE include/* lib/*.a
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kallistios-ports
+          path: |
+            $KOS_PORTS_PACKAGE
+
+  test:
+    needs: [build_kos,build_kos_ports]
+    steps:
+      - run: |
+          mkdir -p ${KOS_PORTS_PATH}
+          cd ${KOS_PORTS_PATH}
+          tar -xvf ${KOS_PORTS_PACKAGE}
+          source ${ENVIRON_SH}
+          cd ${GIT_CLONE_PATH}/examples
+          make
