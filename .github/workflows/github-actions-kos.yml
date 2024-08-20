@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Building KallistiOS
         run: |
+          ls -la
           cp $GIT_CLONE_PATH/doc/environ.sh.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
           sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH  
