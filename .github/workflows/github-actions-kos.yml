@@ -18,7 +18,7 @@ env:
 jobs:
   build_kos:
     container:
-      image: 'segadreamcast/toolchains:latest'
+      image: segadreamcast/toolchains:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,8 +51,7 @@ jobs:
             environ.sh
 
   build_kos_ports:
-    needs:
-      - build_kos
+    needs: [build_kos]
     steps:
       - name: Building KallistiOS Ports
         run: |
@@ -70,9 +69,7 @@ jobs:
             $KOS_PORTS_PACKAGE
 
   test:
-    needs:
-      - build_kos
-      - build_kos_ports
+    needs: [build_kos,build_kos_ports]
     steps:
       - run: |
           mkdir -p ${KOS_PORTS_PATH}
