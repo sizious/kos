@@ -4,11 +4,9 @@ run-name: "${{ github.actor }} is testing out GitHub Actions \U0001F680"
 
 on:
   push:
-    branches:
-      - $default-branch
+    branches: [ $default-branch ]
   pull_request:
-    branches:
-      - $default-branch
+    branches: [ $default-branch ]
 
 env:
   KOS_PORTS_URL: 'https://github.com/KallistiOS/kos-ports.git'
