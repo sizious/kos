@@ -15,27 +15,6 @@ env:
   KOS_PORTS_PACKAGE: ${{ github.workspace }}/kos/kos-ports.tar.xz
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: configure
-      run: ./configure
-
-    - name: Install dependencies
-      run: make
-
-    - name: Run check
-      run: make check
-
-    - name: Run distcheck
-      run: make distcheck
-  
-jobs:
-
   build_kos:
 #    runs-on: ubuntu-latest
 
