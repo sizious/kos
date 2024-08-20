@@ -19,8 +19,7 @@ jobs:
   build_kos:
     name: Build KallistiOS
     runs-on: ubuntu-latest
-    container:
-      image: segadreamcast/toolchains:latest
+    container: segadreamcast/toolchains:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +29,7 @@ jobs:
           echo $GIT_CLONE_PATH
           uname -a
           lsb_release -a
+          cat /etc/os-release
           cp doc/$ENVIRON_SH.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
           sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH
@@ -61,8 +61,7 @@ jobs:
     name: Build KallistiOS Ports  
     needs: [ build_kos ]
     runs-on: ubuntu-latest
-    container:
-      image: segadreamcast/toolchains:latest    
+    container: segadreamcast/toolchains:latest
     steps:
       - name: Building KallistiOS Ports
         run: |
@@ -83,8 +82,7 @@ jobs:
     name: Test
     needs: [ build_kos, build_kos_ports ]
     runs-on: ubuntu-latest
-    container:
-      image: segadreamcast/toolchains:latest    
+    container: segadreamcast/toolchains:latest
     steps:
       - run: |
           mkdir -p $KOS_PORTS_PATH
