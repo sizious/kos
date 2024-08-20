@@ -28,6 +28,7 @@ jobs:
         run: |
           ls -la
           echo $GIT_CLONE_PATH
+          uname -a
           cp doc/$ENVIRON_SH.sample $ENVIRON_SH
           sed -i 's/\/opt\/toolchains\/dc\/kos/$GIT_CLONE_PATH/' $ENVIRON_SH
           sed -i 's/\$KOS_BASE\/..\/kos-ports/$KOS_PORTS_PATH/' $ENVIRON_SH
