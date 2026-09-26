@@ -45,6 +45,11 @@ ifeq ($(standalone_binary),1)
   gdb_static_defines := -DNCURSES_STATIC -DNEED_EXTERN_PC
 endif
 
+# Python support: 'auto' (default if empty), 'no' or path to a Python install.
+ifneq ($(gdb_python),)
+  gdb_python_configure_args := --with-python=$(gdb_python)
+endif
+
 $(stamp_gdb_build): patch-gdb
 	@echo "+++ Building GDB..."
 	rm -f $@
@@ -60,6 +65,7 @@ $(stamp_gdb_build): patch-gdb
           CXX="$(strip $(CXX) $(gdb_static_defines))" \
           CFLAGS="$(CFLAGS) -Wno-error=incompatible-pointer-types" \
           $(macos_gdb_configure_args) \
+          $(gdb_python_configure_args) \
           $(static_flag) \
           $(to_log)
 	$(MAKE) $(jobs_arg) -C $(build) $(to_log)
