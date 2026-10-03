@@ -1,15 +1,14 @@
 #
-# FPU Exception Tests
-# Copyright (C) 2002 Megan Potter
-# Copyright (C) 2024 Falco Girgis
+# MMU test program: ASID contexts
+# Copyright (C) 2026 Bruceleeto
 #
 
-TARGET = fpu_exc.elf
-OBJS = fpu_exc.o
-
-include $(KOS_BASE)/Makefile.rules
+TARGET = asid.elf
+OBJS = asid.o
 
 all: rm-elf $(TARGET)
+
+include $(KOS_BASE)/Makefile.rules
 
 clean: rm-elf
 	-rm -f $(OBJS)
@@ -26,3 +25,4 @@ run: $(TARGET)
 dist: $(TARGET)
 	-rm -f $(OBJS)
 	$(KOS_STRIP) $(TARGET)
+
