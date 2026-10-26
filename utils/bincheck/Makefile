@@ -1,14 +1,12 @@
 MAKE ?= make
 
 all:
-	@cd ./src; \
-	$(MAKE); \
-	$(MAKE) install
+	$(MAKE) -C src
+	$(MAKE) -C src install
 
 install: all
 
 clean:
-	@cd ./src; \
-	$(MAKE) clean
+	$(MAKE) -C src clean
 
 .PHONY: all install clean
