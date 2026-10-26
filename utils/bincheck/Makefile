@@ -9,4 +9,7 @@ install: all
 clean:
 	$(MAKE) -C src clean
 
-.PHONY: all install clean
+distclean:
+	$(MAKE) -C src distclean
+
+.PHONY: all install clean distclean

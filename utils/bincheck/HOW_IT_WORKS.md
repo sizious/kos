@@ -44,7 +44,7 @@ result anywhere. To actually scramble or unscramble a file, use the
 `bincheck_analyze_buffer()` (in `src/check.c`) does the following:
 
 1. It **always descrambles** the input, whether it was scrambled or not,
-   and keeps both the original and the descrambled copy.
+   and keeps both the original and the unscrambled copy.
 2. It computes the **entropy variance** (see below) of each copy.
 3. It compares the two values:
 
@@ -142,7 +142,7 @@ test-u.bin: Unscrambled
 | `test-s.bin` | 1.1451 | 2.6444 | **+131%** | Scrambled |
 | `test-u.bin` | 2.6444 | 1.1965 | **−55%** | Unscrambled |
 
-The variance of the scrambled file more than doubles once descrambled,
+The variance of the scrambled file more than doubles once unscrambled,
 well above the 15% threshold. Descrambling the already-unscrambled file
 instead halves its variance. Note that the "unscrambled" variance of
 `test-s.bin` is exactly the "as-is" variance of `test-u.bin`: the

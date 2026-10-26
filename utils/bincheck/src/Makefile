@@ -41,6 +41,9 @@ install: $(OUTPUT)
 	mkdir -p $(INSTALLDIR)
 	mv $(OUTPUT) $(INSTALLDIR)
 
-.PHONY: all install clean
+.PHONY: all install clean distclean
 clean:
 	-rm -f $(OUTPUT) $(LIB) *.o
+
+distclean: clean
+	-rm -f $(INSTALLDIR)/$(OUTPUT)
