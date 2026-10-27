@@ -1,48 +1,43 @@
 # Sega Dreamcast Binary Checker (bincheck)
 
-`bincheck` tells you whether a Sega Dreamcast homebrew program in `.BIN`
-format is **scrambled** or **unscrambled**.
+`bincheck` is a simple command-line tool that checks whether a Sega Dreamcast homebrew `.BIN` file is **scrambled** or **unscrambled**.
 
-## Scrambled or unscrambled?
+## What does "scrambled" mean?
 
-A `.BIN` file is a compiled Dreamcast program, the kind of file you find in
-homebrew packages labelled "plain files". It can exist in two states:
+A `.BIN` file is a compiled Dreamcast program (often found in homebrew releases under "plain files"). For homebrew programs, these files come in two formats:
 
-- **Scrambled**: required when the program is booted from a CD-ROM, that
-  is, started by the bootstrap (usually called `IP.BIN`). Such programs are
-  commonly named `1ST_READ.BIN`.
-- **Unscrambled**: used in every other case, for example when the program
-  is started by another program, such as a loader.
+- **Scrambled**: Needed when running a program directly from a CD-ROM via the Dreamcast bootloader (usually `IP.BIN`). These files are typically named `1ST_READ.BIN`.
+- **Unscrambled**: Used in all other situations, such as when starting a program with a loader (like `dcload`) or another menu program.
 
-This distinction only applies to homebrew programs, built with homebrew
-toolchains such as KallistiOS.
+This distinction only applies to homebrew programs built with tools like KallistiOS.
 
-`bincheck` works on raw `.BIN` files only. It warns you if you give it an
-ELF file, or a file that does not look like Dreamcast (SH-4) code at all,
-since the result would be meaningless.
+> [!NOTE]
+> `bincheck` is designed for raw `.BIN` files. It will warn you if you provide an ELF executable or a non-Dreamcast file, because checking those files won't produce a useful result.
 
-This tool is a C rewrite of the original Binary Checker (`bincheck.dll`,
-written in Delphi in 2005). The original recognized a fixed list of
-toolchain signatures; this version looks at the file's content instead,
-so it does not depend on the toolchain.
+This project is a modern C rewrite of the original 2005 `bincheck.dll` (which was written in Delphi). While the original version relied on a hardcoded list of compiler signatures, this version analyzes the file's contents directly, so it does not rely on a list of known toolchains.
 
-## Usage
+## How to use it
 
-```
-./bincheck [options] <file.bin>
+```text
+Usage: bincheck [options] <file.bin>
 
+Options:
   -b <bytes>     Block size for the entropy variance (default: 256)
   -m <margin>    Decision threshold, relative increase (default: 0.15)
   -v             Verbose mode (show details)
   -h             Show this help
 ```
 
-For example:
+### Examples
 
-```
+Check a file:
+```text
 $ ./bincheck 1ST_READ.BIN
 1ST_READ.BIN: Scrambled
+```
 
+Check a file with detailed info:
+```text
 $ ./bincheck -v 1ST_READ.BIN
 File                         : 1ST_READ.BIN
 Entropy variance, as-is      : 1.1451
@@ -51,93 +46,74 @@ Threshold (relative increase): +15%
 SH-4 code score              : 109.63 (minimum: 2.00)
 ---
 1ST_READ.BIN: Scrambled
+```
 
+Handling non-Dreamcast files:
+```text
 $ ./bincheck notepad.exe
 Warning: "notepad.exe" does not look like SH-4 code (Dreamcast program) so this result is probably meaningless
 notepad.exe: Unscrambled
 ```
 
-Warnings are printed on `stderr`, so scripts reading the verdict on
-`stdout` are not affected.
+Warnings are sent to `stderr`, so any automated scripts reading the result from `stdout` continue to work smoothly.
 
-To actually scramble or unscramble a file, use the `scramble` tool that
-ships with KallistiOS (`utils/scramble`).
+> [!TIP]
+> `bincheck` only detects whether a file is scrambled or not. To scramble or unscramble a binary, use the `scramble` utility included with KallistiOS (`utils/scramble`).
 
-## How it works
+## How it works (in simple terms)
 
-In short: `bincheck` descrambles the file, then checks which of the two
-versions has the structure of a real program.
+In short: `bincheck` creates an unscrambled copy of the file in memory, and then checks which version looks like a real, organized program.
 
-Scrambling does not change any byte; it only shuffles the file in 32-byte
-slices. A normal program has distinct regions (code, data, runs of zeros),
-and scrambling mixes them together. `bincheck` measures how different the
-regions of a file are from one another, using the variance of the Shannon
-entropy computed over 256-byte blocks. If that variance rises clearly
-after descrambling, the file was scrambled.
+Scrambling does not encrypt or change individual bytes. Instead, it chops the file into 32-byte chunks and shuffles them around. A normal program has organized, distinct sections (code, data tables, and blocks of empty zero bytes). Scrambling mixes all these sections together into an even blend. 
 
-The code is split into two parts:
+`bincheck` measures how varied the different sections of the file are (using a statistical concept called **entropy variance** across 256-byte blocks). 
+- If unscrambling the file makes its internal sections look **much more distinct and organized** (an entropy variance increase of over 15%), the file was scrambled.
+- If the file becomes less organized or stays roughly the same, it was already unscrambled.
 
-- **`src/scramble.c`**: the real scramble/descramble algorithm, ported from
-  Marcus Comstedt's `scramble` tool (`utils/scramble` in KallistiOS).
-- **`src/check.c`**: the detection itself.
+`bincheck` also performs two quick sanity checks to see whether the file looks like an actual Dreamcast program: it checks whether the file is an ELF binary, and it looks for standard SH-4 CPU instructions that GCC produces. If either check fails, it prints a warning, but the verdict is still given.
 
-Before that, `bincheck` checks that the file really is a raw Dreamcast
-program: it rejects ELF files, and looks for two SH-4 instructions that
-GCC emits in almost every function. Either failed check prints a warning.
-
-See [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for the full explanation, including
-a worked example and why disassembling the file is not a reliable way to
-tell the two states apart.
+For a full, in-depth explanation and test numbers, see [HOW_IT_WORKS.md](HOW_IT_WORKS.md).
 
 ## Accuracy
 
-The detection threshold (`BINCHECK_DEFAULT_VARIANCE_MARGIN` in
-`src/check.h`, +15% by default) has so far been checked on only a few real
-programs (dcload-ip, dcload-serial, a KOS example). It has not yet been
-validated on binaries from a wide range of toolchains, so keep this in mind
-before relying on it. If you get a wrong verdict, you can adjust the
-threshold with `-m` and the block size with `-b`, and please report the
-case.
+The default decision threshold (+15% increase) was tested against a wide range of real-world binaries:
+- 152 KallistiOS examples tested in both scrambled and unscrambled form.
+- Real-world utilities (`dcload-ip` and `dcload-serial`).
+- Classic homebrew releases from 2004 to 2011 (`snes4all`, `SuperFamicast`, `dcplaya`).
+- A NetBSD 10.1 Dreamcast kernel built with the NetBSD toolchain.
 
-## Build
+Every test was 100% accurate. The lowest variance increase seen on a scrambled file was +31% (`dcload-serial`), and every unscrambled file experienced a decrease of at least −21% when unscrambled again.
 
-```
+You can tune the threshold (`-m`) or the block size (`-b`) if you ever encounter an unusual binary.
+
+## How to build
+
+To compile the project, run:
+
+```bash
 make
 ```
 
-This builds everything in `src/` and places the stripped `bincheck` binary
-in this directory. `make clean` removes the build artifacts.
+This compiles all source files in `src/` and places the `bincheck` executable in this directory (`utils/bincheck`). To clean up build files, run `make clean`.
 
-You can also work directly in `src/`: there, `make` builds and strips the
-binary, and `make install` moves it up to this directory.
+`bincheck` only requires standard C library functions and the math library (`libm`). It builds cleanly with GCC on Linux and on Windows (via MinGW / DreamSDK), and should build as-is on macOS.
 
-`bincheck` has no dependencies besides the C standard library and the math library
-(`libm`). It has been tested with GCC on Linux, and should build as-is on
-macOS and on Windows with MinGW.
+## Project structure
 
-## Project layout
-
-```
+```text
 bincheck/
 ├── src/
-│   ├── scramble.h/.c        # scramble/descramble algorithm (Comstedt)
-│   ├── check.h/.c           # detection (entropy variance)
-│   ├── main.c               # command-line tool
-│   └── Makefile             # builds bincheck and installs it in ../
-├── HOW_IT_WORKS.md          # detailed explanation of the detection
+│   ├── scramble.h/.c        # Scramble/unscramble logic
+│   ├── check.h/.c           # Entropy variance analysis and checks
+│   ├── main.c               # CLI interface and output formatting
+│   └── Makefile             # Builds bincheck
+├── HOW_IT_WORKS.md          # Technical deep dive into the detection algorithm
 ├── LICENSE                  # BSD 2-Clause License
-├── Makefile                 # runs make and make install in src/
+├── Makefile                 # Top-level makefile
 └── README.md
 ```
 
-## Possible improvements
-
-- Calibrate the detection threshold on more real programs, built with
-  different toolchains (KallistiOS, NetBSD ELF toolchain, others).
-
 ## License
 
-- `bincheck` is released under the **BSD 2-Clause License** (see
-  [LICENSE](LICENSE)).
-- `src/scramble.c` is a port of Marcus Comstedt's `scramble.c` (KallistiOS
-  `utils/scramble`), released under the KOS License (BSD-style).
+- `bincheck` is open source under the **BSD 2-Clause License** (see [LICENSE](LICENSE)).
+- `src/scramble.c` is based on Marcus Comstedt's `scramble.c` (from KallistiOS `utils/scramble`), licensed under the BSD-compatible KOS License.

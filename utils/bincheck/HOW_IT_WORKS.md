@@ -1,123 +1,104 @@
 # How bincheck works
 
-This document explains how `bincheck` decides whether a Sega Dreamcast
-`.BIN` file is **scrambled** (the layout expected when booting from a CD,
-typically `1ST_READ.BIN`) or **unscrambled** (a plain, linear program
-image). For build and usage instructions, see [README.md](README.md).
+This guide explains how `bincheck` determines whether a Sega Dreamcast `.BIN` program is **scrambled** (the format needed when booting from a CD, usually `1ST_READ.BIN`) or **unscrambled** (a standard, flat binary image). 
 
-In one sentence: `bincheck` descrambles the file and checks which of the
-two versions has the structure of a real program.
+For build and usage instructions, see [README.md](README.md).
+
+> **In a nutshell:** `bincheck` creates an unscrambled copy of the file in memory and compares both versions. The version with the structured characteristics of a real program tells us which state the file was originally in.
+
+---
 
 ## Overview
 
-The tool is made of three parts:
+The tool is organized into three main source files:
 
-| File | Role |
-|------|------|
-| [`src/main.c`](src/main.c) | Command-line front end: parses options, prints the verdict and warnings. |
-| [`src/scramble.c`](src/scramble.c) | The real scramble/descramble algorithm. |
-| [`src/check.c`](src/check.c) | The detection itself (`bincheck_analyze_buffer()`). |
+| File | Purpose |
+|------|---------|
+| [`src/main.c`](src/main.c) | Command-line interface: handles options and prints results or warnings. |
+| [`src/scramble.c`](src/scramble.c) | The scrambling and unscrambling algorithms (adapted from the KallistiOS `scramble` tool). |
+| [`src/check.c`](src/check.c) | The core analysis and detection logic (`bincheck_analyze_buffer()`). |
 
-## Step 1: descrambling
+---
 
-`scramble.c` is a port of Marcus Comstedt's `scramble` tool from
-KallistiOS (`utils/scramble`).
+## Step 1: Unscrambling
 
-Dreamcast scrambling is **not encryption**. No byte value is changed. The
-file is cut into **32-byte slices**, and those slices are shuffled
-(Fisher-Yates) in chunks that shrink from 2 MB down to 32 bytes. The
-pseudo-random generator driving the shuffle is seeded with the file size.
+The unscrambling code in [`src/scramble.c`](src/scramble.c) is ported directly from Marcus Comstedt's `scramble` utility in KallistiOS (`utils/scramble`).
 
-Because the shuffle depends only on the file size, it is fully
-deterministic and can be reversed exactly. `dc_descramble_buffer()`
-computes the real inverse permutation, not an approximation. This was
-checked with a byte-exact round trip on dcload-ip: descrambling its
-`1st_read.bin` gives exactly `loader.bin`, and scrambling `loader.bin`
-gives exactly `1st_read.bin`.
+Dreamcast scrambling is **not encryption**. It does not alter byte values or password-protect anything. Instead:
+1. The file is split into **32-byte slices**.
+2. These slices are shuffled around according to a deterministic pseudorandom pattern based on the total file size.
 
-`bincheck` only uses descrambling for detection and does not write the
-result anywhere. To actually scramble or unscramble a file, use the
-`scramble` tool that ships with KallistiOS (`utils/scramble`).
+Because the shuffle depends purely on the file size, it is completely reversible. The function `dc_descramble_buffer()` performs this exact mathematical reversal. When tested on real software like `dcload-ip`, unscrambling its `1st_read.bin` produces the exact byte-for-byte image of `loader.bin`, and scrambling `loader.bin` produces `1st_read.bin` again.
 
-## Step 2: detection
+`bincheck` keeps the unscrambled version in memory only for analysis; it does not modify your file or write a new one to disk.
 
-`bincheck_analyze_buffer()` (in `src/check.c`) does the following:
+---
 
-1. It **always descrambles** the input, whether it was scrambled or not,
-   and keeps both the original and the unscrambled copy.
-2. It computes the **entropy variance** (see below) of each copy.
-3. It compares the two values:
+## Step 2: Detection
 
-   ```
+The core detection function, `bincheck_analyze_buffer()` in [`src/check.c`](src/check.c), follows these steps:
+
+1. **Always unscramble:** It unscrambles the binary into a separate memory buffer, regardless of whether the input file was scrambled or unscrambled.
+2. **Measure entropy variance:** It calculates the **entropy variance** (explained below) for both the original file and the unscrambled copy.
+3. **Compare results:** It checks how much the variance changed:
+
+   ```text
    relative_increase = (variance_unscrambled - variance_as_is) / variance_as_is
-   is_scrambled      = relative_increase > margin      (default margin: 0.15)
+   is_scrambled      = relative_increase > 0.15  (+15% margin)
    ```
 
-   In other words, if descrambling makes the entropy variance rise by more
-   than 15%, the file was scrambled.
+If unscrambling increases the entropy variance by more than **15%**, the original file was **scrambled**.
 
-Before that, it runs two sanity checks to make sure the file is one
-`bincheck` can judge; see
-[Checking that the file is a Dreamcast program](#checking-that-the-file-is-a-dreamcast-program).
-Disassembling the file was tried as a detection method and dropped; see
-[Why not use the disassembler?](#why-not-use-the-disassembler).
+Before calculating entropy, `bincheck` also runs sanity checks to see whether the file looks like a Dreamcast program. They only print warnings and never change the verdict (see [Sanity checks](#checking-that-the-file-is-a-dreamcast-program)).
+
+---
 
 ## What is entropy variance?
 
-### Shannon entropy
+### Shannon entropy (randomness of a block)
 
-The Shannon entropy of a block of bytes measures how unpredictable its
-content is, from 0 to 8 bits per byte:
+Shannon entropy measures how unpredictable or random data is on a scale from **0 to 8 bits per byte**:
 
-| Content | Typical entropy |
-|---------|-----------------|
-| Block of zeros (padding, BSS) | 0 |
-| Text, tables with repeated patterns | low to medium |
-| SH-4 machine code | high (about 5 to 7) |
-| Compressed or random data | close to 8 |
+| Data type | Typical entropy |
+|-----------|-----------------|
+| Blocks of zeros (padding, empty space) | 0 (completely predictable) |
+| Text, repetitive lookup tables | Low to medium |
+| Compiled SH-4 CPU code | High (typically 5 to 7) |
+| Compressed files or encrypted data | Very high (close to 8) |
 
-It is computed by `shannon_entropy()` from the byte histogram of the
-block: `H = -Σ p(b) · log2(p(b))`, where `p(b)` is the frequency of byte
-value `b`.
+`shannon_entropy()` calculates this value based on how frequently each byte value (0–255) appears in a given block.
 
-### Variance across blocks
+### Block entropy variance (variation across the whole file)
 
-`block_entropy_variance()` goes one step further:
+Rather than calculating a single entropy number for the whole file, `block_entropy_variance()` looks at how entropy changes across different parts of the file:
 
-1. It cuts the file into consecutive blocks of 256 bytes (option `-b`).
-2. It computes the entropy of each block.
-3. It returns the (population) variance of those values, in other words
-   how spread out they are around their mean.
+1. It divides the file into consecutive **256-byte blocks** (configurable with `-b`).
+2. It calculates the Shannon entropy for every 256-byte block.
+3. It computes the **variance** of these entropy values—measuring how much the blocks differ from each other.
 
-### Why it detects scrambling
+### Why this detects scrambling
 
-Since scrambling only moves bytes around, the file contains exactly the
-same bytes before and after. Entropy computed over the **whole file** is
-therefore identical in both cases and cannot be used as a signal.
+Because scrambling only shuffles existing bytes, the total file has the exact same byte counts before and after. Measuring the entropy of the entire file would produce identical numbers.
 
-What changes is the **local** structure:
+However, the **local structure** changes drastically:
 
-- **An unscrambled binary** has distinct regions: dense code (high
-  entropy), data tables (medium), runs of zeros (close to 0). The block
-  entropies are spread over a wide range, so **the variance is high**.
-- **A scrambled binary** has had those regions cut into 32-byte slices and
-  scattered. Each 256-byte block now holds a mix of code, data and zeros,
-  so every block looks roughly average. **The variance is low.**
+- **An unscrambled program is organized into distinct zones:** It has dense machine code sections (high entropy), data tables (medium entropy), and blocks of zero padding (near 0 entropy). Because different blocks look very different, **the variance between blocks is high**.
+- **A scrambled program is thoroughly blended:** The 32-byte slices of code, data, and zero blocks are scattered all over the file. Each 256-byte block ends up containing a random mix of everything, making every block look similar. Because there is little contrast from one block to the next, **the variance between blocks is low**.
 
-This makes the test work in both directions:
+This creates a reliable, two-way test:
 
-- If the file **was scrambled**, descrambling rebuilds the distinct
-  regions and the variance rises sharply.
-- If the file **was already unscrambled**, "descrambling" it actually
-  shuffles it, and the variance stays flat or drops.
+- **If the file was scrambled:** Unscrambling it restores the distinct sections. The entropy variance **jumps noticeably higher**.
+- **If the file was already unscrambled:** Running the unscrambler on it actually shuffles and scrambles the data further. The distinct sections disappear, and the variance **drops or stays low**.
 
-## Worked example
+---
 
-Here is `bincheck -v` run on a real 1,236,356-byte homebrew program, in
-both states: `test-s.bin` is the scrambled version and `test-u.bin` is the
-unscrambled one.
+## Real-world example
 
-```
+Below is the output of `bincheck -v` run on a real 1.2 MB homebrew program in both formats:
+- `test-s.bin`: Scrambled version
+- `test-u.bin`: Unscrambled version
+
+```text
 $ ./bincheck -v test-s.bin
 File                         : test-s.bin
 Entropy variance, as-is      : 1.1451
@@ -137,101 +118,79 @@ SH-4 code score              : 109.63 (minimum: 2.00)
 test-u.bin: Unscrambled
 ```
 
-| File | Variance as-is | Variance after descramble | Change | Verdict |
-|------|----------------|---------------------------|--------|---------|
-| `test-s.bin` | 1.1451 | 2.6444 | **+131%** | Scrambled |
-| `test-u.bin` | 2.6444 | 1.1965 | **−55%** | Unscrambled |
+### Breakdown:
 
-The variance of the scrambled file more than doubles once unscrambled,
-well above the 15% threshold. Descrambling the already-unscrambled file
-instead halves its variance. Note that the "unscrambled" variance of
-`test-s.bin` is exactly the "as-is" variance of `test-u.bin`: the
-descramble reproduces the original file byte for byte.
+| File | Variance as-is | Variance after unscrambling | Change | Verdict |
+|------|----------------|-----------------------------|--------|---------|
+| `test-s.bin` | 1.1451 | 2.6444 | **+131%** | **Scrambled** |
+| `test-u.bin` | 2.6444 | 1.1965 | **−55%** | **Unscrambled** |
 
-Other real programs show the same pattern, with smaller gaps:
+Notice that the variance of the scrambled file more than doubles (+131%) once unscrambled, well above the 15% threshold. Conversely, unscrambling the already-unscrambled file cuts its variance in half (−55%). 
 
-| Program | Scrambled file, after descramble | Unscrambled file, after descramble |
-|---------|----------------------------------|------------------------------------|
-| dcload-ip (`1st_read.bin` / `loader.bin`) | +51% | −33% |
-| dcload-serial (`1st_read.bin` / `loader.bin`) | +31% | −21% |
+Also note that the unscrambled variance of `test-s.bin` (2.6444) matches the original as-is variance of `test-u.bin` (2.6444), as expected since unscrambling restores the original file byte for byte (see [Step 1](#step-1-unscrambling)).
+
+### Test results across different programs
+
+| Program | Scrambled file (after unscramble) | Unscrambled file (after unscramble) |
+|---------|-----------------------------------|-------------------------------------|
+| `dcload-ip` (`1st_read.bin` / `loader.bin`) | +51% | −33% |
+| `dcload-serial` (`1st_read.bin` / `loader.bin`) | +31% | −21% |
 | KOS example `nehe05` (`1st_read.bin` / `nehe05.bin`) | +134% | −53% |
+| `snes4all` beta 1 (KOS from 2011) | +172% | −61% |
+| `snes4all` beta 2 (KOS from 2011) | +46% | −25% |
+| `snes4all` beta 2 "secure" (KOS from 2011) | +55% | −32% |
+| `dcplaya` 2.0 beta 2 (KOS from 2004) | +125% | −56% |
+| NetBSD 10.1 kernel (NetBSD toolchain) | +91% | −50% |
 
-All are classified correctly. dcload-serial, at +31%, is the closest to the
-15% threshold so far.
+In every case, the distinction is clear. Across a broader test set of 152 KallistiOS programs (304 files total), the results remained consistent:
+- Scrambled binaries saw variance increases between **+97%** and **+696%** (median: **+204%**).
+- Unscrambled binaries saw variance drops between **−47%** and **−89%** (median: **−65%**).
 
-## Why not use the disassembler?
+---
 
-An intuitive approach would be to disassemble the file and check whether
-the result looks like valid SH-4 code. Earlier versions of `bincheck` did
-this with the `dcdis` disassembler, but it does not work well:
+## Why not just disassemble the file?
 
-- The SH-4 opcode space is **dense**: even random noise decodes to about
-  90% "valid" instructions, so a scrambled file still looks mostly valid.
-- The difference between the two versions is small and does not always
-  point the right way. On the two files of the example above, the ratio
-  of valid opcodes (over the first 4 KB) **increases after descrambling
-  in both cases**: 86% → 90% for the scrambled file, 90% → 93% for the
-  unscrambled one. It cannot tell them apart.
+A common question is: *Why not disassemble the file and check if the CPU instructions make sense?*
 
-`dcdis` was therefore removed. This also keeps `bincheck` entirely under
-permissive licenses, since `dcdis` is GPLv3.
+Earlier iterations tried this with the `dcdis` disassembler, but disassembling proved unreliable for two reasons:
+
+1. **SH-4 instructions are very dense:** In the SH-4 architecture, almost any random 16-bit number happens to map to a technically valid instruction. Even random white noise decodes to roughly 90% "valid" instructions. A scrambled file still looks like valid code to a disassembler.
+2. **Ambiguous differences:** On test programs, the percentage of valid instructions slightly increased after unscrambling in *both* cases (for example, rising from 86% to 90% for a scrambled file, and 90% to 93% for an unscrambled file). A disassembler cannot clearly tell which file is scrambled.
+
+Removing the disassembler also keeps `bincheck` entirely under permissive licenses (BSD 2-Clause, and the KOS License for `src/scramble.c`), since `dcdis` is GPLv3.
+
+---
 
 ## Checking that the file is a Dreamcast program
 
-The entropy test always gives an answer, even for a file that is not a
-Dreamcast program at all: a PC executable, an image or a text file is
-usually reported as "Unscrambled". To catch this, `bincheck` runs two
-checks on the file and prints a warning (on `stderr`) when one fails. The
-checks never change the verdict itself.
+Because the entropy calculation is purely statistical, it produces numbers for any file—even a Windows `.exe` or a JPEG image.
 
-**ELF files.** A file starting with the ELF magic bytes (`ELF`) is
-reported as an ELF file. `bincheck` only works on raw `.BIN` files, which
-are what `objcopy -O binary` produces from an ELF.
+To prevent confusion, `bincheck` performs two sanity checks. Each one only prints a warning (on `stderr`) when it fails; the verdict is still printed.
 
-**SH-4 code.** Instead of disassembling the file, `bincheck` counts two
-specific 16-bit instructions that GCC places at the start and end of
-every function that calls another function:
+### 1. Detecting ELF files
+A compiled executable right out of GCC is typically in ELF format. If the file starts with the ELF magic header bytes (`\x7fELF`), `bincheck` prints a warning, since it is designed for raw `.BIN` files (the output of `objcopy -O binary`) and the result is meaningless for an ELF file.
 
-- `sts.l pr,@-r15` (`0x4f22`): save the return address on the stack;
-- `lds.l @r15+,pr` (`0x4f26`): restore it.
+### 2. Identifying SH-4 machine code
+Rather than disassembling everything, `bincheck` counts how often two specific 16-bit instructions appear:
+- `sts.l pr,@-r15` (`0x4f22`): Saves the return address onto the stack (function start).
+- `lds.l @r15+,pr` (`0x4f26`): Restores the return address from the stack (function exit).
 
-Unlike "is this a valid instruction?", which is true for about 90% of all
-possible 16-bit values, these exact words are very rare in anything that
-is not SH-4 code. The **SH-4 code score** is the number of occurrences of
-both instructions per 10,000 words. The file is considered SH-4 code if
-both instructions are present and the score is at least 2
-(`BINCHECK_SH4_MIN_SCORE` in `src/check.h`).
+GCC includes this pair in virtually every C/C++ function that calls another function. While generic instructions are common everywhere, this exact instruction pair is extremely rare in non-SH4 files.
 
-| Files | SH-4 code score |
-|-------|-----------------|
-| Raw Dreamcast binaries (dcload-ip, dcload-serial, KOS examples, `IP.BIN` bootstraps) | 45 to 140 |
-| KOS ELF files (code plus debug information) | about 12 |
-| x86 executables and DLLs, ARM code, images, fonts, text | 0 to 0.85 |
+`bincheck` calculates an **SH-4 code score** (occurrences per 10,000 words). The file passes if both instructions are found and the score is at least **2.0**:
 
-The threshold is 20 times lower than the lowest Dreamcast binary measured,
-and more than twice the highest score seen on other files (a single
-chance occurrence in a small JPEG).
+| File type | SH-4 code score |
+|-----------|-----------------|
+| Raw Dreamcast binaries | **10.7 to 145** (most are above 45) |
+| Dreamcast ELF files (code + debug symbols) | ~12 |
+| Non-Dreamcast files (x86 binaries, images, text) | **0 to 0.85** |
 
-Because scrambling moves whole 32-byte slices, every 16-bit instruction
-stays intact: the score is exactly the same for the scrambled and the
-unscrambled version of a file, so this check does not need to descramble
-anything.
+Because scrambling moves whole 32-byte slices, 16-bit instructions are never broken apart. The SH-4 score is identical whether the file is scrambled or unscrambled, so this check can run immediately without needing to unscramble anything first.
+
+---
 
 ## Limitations
 
-- **Calibration.** The 15% threshold (`BINCHECK_DEFAULT_VARIANCE_MARGIN` in
-  `src/check.h`) has only been checked on a few programs (see the
-  [worked example](#worked-example)). It should be validated on binaries
-  from other toolchains. It can be tuned with `-m`, and the block size
-  with `-b`.
-- **SH-4 detection.** The SH-4 code check relies on GCC's usual function
-  prologue and epilogue. A program with very little code compared to its
-  embedded data (large textures or sound), or code produced by another
-  compiler or written in assembly, may get a low score and trigger a
-  false warning. The verdict is still printed in that case.
-- **Raw `.BIN` files only.** ELF files are detected and trigger a warning,
-  since the result is meaningless for them.
-- **Weakly structured files.** A very small file, or one made almost
-  entirely of code with little data or padding, has little entropy
-  variance to begin with. The signal will be weaker, and the verdict less
-  reliable.
+- **Calibration & Toolchains:** The 15% threshold has been verified on about 160 programs (over 300 files): KallistiOS binaries from current, 2004 and 2011 versions, and a NetBSD kernel built with the NetBSD toolchain. Binaries from other toolchains have not been tested yet. You can adjust the threshold using `-m` or block size with `-b`.
+- **Heavy Asset Binaries:** A binary with very little code and massive embedded assets (such as uncompressed music or textures) might have fewer function calls, which could result in a lower SH-4 score warning. The verdict is still calculated and displayed.
+- **Very Small Files:** Binaries with very little code or data may lack enough contrast for entropy variance to show a clear gap.
