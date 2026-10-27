@@ -216,13 +216,20 @@ symbolic links are not well managed under this environment.
 That's why you need to manually fix up **SH4** `Newlib` when updating your
 toolchains (i.e. rebuilding it) and/or updating **KallistiOS**.
 
-This is the purpose of the provided `fixup-sh4-newlib.sh` script.
-
+To do so, without rebuilding `Newlib`, enter the following from the
+`kos-chain` directory:
+```
+make fixup-newlib-only
+```
+You can also run the `scripts/fixup-newlib.sh` script directly, passing the
+**KallistiOS** directory and the `Newlib` include directory, e.g.:
+```
+bash ./scripts/fixup-newlib.sh /opt/toolchains/dc/kos /opt/toolchains/dc/sh-elf/sh-elf/include
+```
+The provided `packages/fixup-sh4-newlib.sh` script is a wrapper around it.
 Before executing it, edit the file to be sure the `$toolchains_base` variable
-is correctly set, then run it by entering:
-```
-./packages/fixup-sh4-newlib.sh
-```
+is correctly set.
+
 ## Next steps ##
 
 After following this guide, the toolchains should be ready.

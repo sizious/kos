@@ -9,12 +9,7 @@ export newlib_inc=$toolchains_base/sh-elf/sh-elf/include
 # But the "ln" tool under MinGW/MSYS is not working properly.
 # So each time you update KallistiOS, you'll need to run this tool to update
 # the includes used by the SH4 compiler.
-cp -r $kos_base/include/kos $newlib_inc
-cp -r $kos_base/kernel/arch/dreamcast/include/arch $newlib_inc
-cp -r $kos_base/kernel/arch/dreamcast/include/dc $newlib_inc
-
-# These instructions are just fail-safes, as in the original kos-chain Makefile
-# they are already "cp" instructions.
-cp $kos_base/include/pthread.h $newlib_inc
-cp $kos_base/include/sys/_pthread.h $newlib_inc/sys
-cp $kos_base/include/machine/time.h $newlib_inc/machine
+#
+# The actual list of headers is maintained in kos-chain's
+# 'scripts/fixup-newlib.sh'; this is just a convenience wrapper.
+exec bash "$kos_base/utils/kos-chain/scripts/fixup-newlib.sh" -c "$kos_base" "$newlib_inc"
