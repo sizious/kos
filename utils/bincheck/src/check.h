@@ -71,16 +71,17 @@ extern "C" {
 #define BINCHECK_DEFAULT_ENTROPY_BLOCK   256u
 
 /* Minimum relative variance increase (unscrambled vs as-is) needed to
- * conclude the file was scrambled. 0.15 = +15%. Observed on scrambled
- * files: dcload-ip +51%, dcload-serial +31%, KOS nehe05 +134% (and -21% to
- * -55% on unscrambled ones); needs refining with more samples. */
+ * conclude the file was scrambled. 0.15 = +15%. Validated on about 160
+ * programs (KOS samples, dcload, older KOS releases, a NetBSD kernel), each
+ * in both states: scrambled files rose by +31% (dcload-serial) to +696%,
+ * unscrambled files dropped by -21% (dcload-serial) to -89%. */
 #define BINCHECK_DEFAULT_VARIANCE_MARGIN 0.15
 
 /* Minimum SH-4 code score (see sh4_score below) for the file to be
- * considered SH-4 code. Observed: >= 45 on every raw Dreamcast binary
- * tested (dcload-ip, dcload-serial, KOS examples, IP.BIN), about 12 on
- * KOS ELF files, and <= 0.85 on non-SH-4 files (x86 executables, ARM
- * code, images, fonts, text). */
+ * considered SH-4 code. Observed: 10.7 to 145 on raw Dreamcast binaries
+ * (most above 45; the lowest ones embed large assets), about 12 on KOS ELF
+ * files, and <= 0.85 on non-SH-4 files (x86 executables, ARM code, images,
+ * fonts, text). */
 #define BINCHECK_SH4_MIN_SCORE           2.0
 
 typedef struct {
