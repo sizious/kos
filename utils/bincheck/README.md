@@ -24,9 +24,14 @@ Usage: bincheck [options] <file.bin>
 Options:
   -b <bytes>     Block size for the entropy variance (default: 256)
   -m <margin>    Decision threshold, relative increase (default: 0.15)
+  -i             Invert the exit code (scrambled: 1, unscrambled: 0)
   -v             Verbose mode (show details)
   -h             Show this help
   --version      Show the version
+
+Exit status:
+  0 if the file is scrambled, 1 if it is unscrambled (swapped with -i),
+  2 if an error occurred.
 ```
 
 ### Examples
@@ -57,6 +62,43 @@ notepad.exe: Unscrambled
 ```
 
 Warnings are sent to `stderr`, so any automated scripts reading the result from `stdout` continue to work smoothly.
+
+### Use in scripts
+
+The exit code gives the verdict, so scripts don't need to parse the output:
+
+| Exit code | Default | With `-i` |
+|-----------|---------|-----------|
+| `0` | Scrambled | Unscrambled |
+| `1` | Unscrambled | Scrambled |
+| `2` | Error (file not found, invalid option...) | Error |
+
+For example, to scramble a binary only if it isn't scrambled yet:
+```bash
+bincheck program.bin > /dev/null
+case $? in
+    0) cp program.bin 1ST_READ.BIN ;;          # already scrambled
+    1) scramble program.bin 1ST_READ.BIN ;;    # unscrambled
+    *) echo "bincheck failed" >&2; exit 1 ;;
+esac
+```
+
+Use `-i` when the unscrambled case is the "success" you test for, since an
+`if` only succeeds on exit code `0` (an error, `2`, counts as a failure):
+```bash
+if bincheck -i program.bin > /dev/null; then
+    echo "program.bin is unscrambled"
+fi
+```
+
+Or in a Windows batch file:
+```bat
+bincheck 1ST_READ.BIN > NUL
+if errorlevel 2 goto error
+if errorlevel 1 echo Unscrambled
+```
+
+The warnings shown for ELF or non-SH-4 files do not change the exit code.
 
 > [!TIP]
 > `bincheck` only detects whether a file is scrambled or not. To scramble or unscramble a binary, use the `scramble` utility included with KallistiOS (`utils/scramble`).

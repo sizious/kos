@@ -46,6 +46,12 @@
 #define BINCHECK_VERSION "unknown"
 #endif
 
+/* Exit codes, for use in scripts (like grep: 0/1 for the verdict, 2 for an
+ * error). The verdict codes are swapped with -i. */
+#define EXIT_SCRAMBLED    0
+#define EXIT_UNSCRAMBLED  1
+#define EXIT_ERROR        2
+
 /* Extract the program name from argv[0]: strip the directory (both '/' and
  * '\' separators, for Windows) and the extension (e.g. ".exe"). */
 static const char *
@@ -80,11 +86,17 @@ usage(const char *argv0)
         "Options:\n"
         "  -b <bytes>     Block size for the entropy variance (default: %u)\n"
         "  -m <margin>    Decision threshold, relative increase (default: %.2f)\n"
+        "  -i             Invert the exit code (scrambled: %d, unscrambled: %d)\n"
         "  -v             Verbose mode (show details)\n"
         "  -h             Show this help\n"
-        "  --version      Show the version\n",
+        "  --version      Show the version\n\n"
+        "Exit status:\n"
+        "  %d if the file is scrambled, %d if it is unscrambled (swapped with -i),\n"
+        "  %d if an error occurred.\n",
         BINCHECK_VERSION, prog, BINCHECK_DEFAULT_ENTROPY_BLOCK,
-        BINCHECK_DEFAULT_VARIANCE_MARGIN);
+        BINCHECK_DEFAULT_VARIANCE_MARGIN,
+        EXIT_UNSCRAMBLED, EXIT_SCRAMBLED,
+        EXIT_SCRAMBLED, EXIT_UNSCRAMBLED, EXIT_ERROR);
 }
 
 int
@@ -94,6 +106,7 @@ main(int argc, char **argv)
     bincheck_result_t result;
     const char *filename = NULL;
     int verbose = 0;
+    int invert = 0;
     int i;
 
     bincheck_options_init(&opts);
@@ -107,6 +120,8 @@ main(int argc, char **argv)
             return EXIT_SUCCESS;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = 1;
+        } else if (strcmp(argv[i], "-i") == 0) {
+            invert = 1;
         } else if (strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
             opts.entropy_block = (uint32_t)strtoul(argv[++i], NULL, 10);
         } else if (strcmp(argv[i], "-m") == 0 && i + 1 < argc) {
@@ -116,18 +131,18 @@ main(int argc, char **argv)
         } else {
             fprintf(stderr, "Unknown option: %s\n\n", argv[i]);
             usage(argv[0]);
-            return EXIT_FAILURE;
+            return EXIT_ERROR;
         }
     }
 
     if (!filename) {
         usage(argv[0]);
-        return EXIT_FAILURE;
+        return EXIT_ERROR;
     }
 
     if (!bincheck_analyze_file(filename, &opts, &result)) {
         fprintf(stderr, "Error: unable to analyze \"%s\"\n", filename);
-        return EXIT_FAILURE;
+        return EXIT_ERROR;
     }
 
     if (verbose) {
@@ -154,5 +169,7 @@ main(int argc, char **argv)
 
     printf("%s: %s\n", filename, result.is_scrambled ? "Scrambled" : "Unscrambled");
 
-    return EXIT_SUCCESS;
+    if (invert)
+        return result.is_scrambled ? EXIT_UNSCRAMBLED : EXIT_SCRAMBLED;
+    return result.is_scrambled ? EXIT_SCRAMBLED : EXIT_UNSCRAMBLED;
 }
