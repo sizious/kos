@@ -14,7 +14,7 @@ This distinction only applies to homebrew programs built with tools like Kallist
 > [!NOTE]
 > `bincheck` is designed for raw `.BIN` files. It will warn you if you provide an ELF executable or a non-Dreamcast file, because checking those files won't produce a useful result.
 
-This project is a modern C rewrite of the original 2005 `bincheck.dll` (which was written in Delphi). While the original version relied on a hardcoded list of compiler signatures, this version analyzes the file's contents directly, so it does not rely on a list of known toolchains.
+This project is a modern C rewrite of the original 2005 `bincheck.dll` ([which was written in Delphi](https://sizious.com/download/dreamcast/#binary-checker)). While the original version relied on a hardcoded list of compiler signatures, this version analyzes the file's contents directly, so it does not rely on a list of known toolchains.
 
 ## How to use it
 
