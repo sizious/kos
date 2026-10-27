@@ -26,6 +26,7 @@ Options:
   -m <margin>    Decision threshold, relative increase (default: 0.15)
   -v             Verbose mode (show details)
   -h             Show this help
+  --version      Show the version
 ```
 
 ### Examples
@@ -96,6 +97,8 @@ make
 
 This compiles all source files in `src/` and places the `bincheck` executable in this directory (`utils/bincheck`). To clean up build files, run `make clean`.
 
+The version number is set by `VERSION` in `src/Makefile` and shown by `bincheck --version` (and in `bincheck -h`). See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.
+
 `bincheck` only requires standard C library functions and the math library (`libm`). It builds cleanly with GCC on Linux and on Windows (via MinGW / DreamSDK), and should build as-is on macOS.
 
 ## Project structure
@@ -106,7 +109,8 @@ bincheck/
 │   ├── scramble.h/.c        # Scramble/unscramble logic
 │   ├── check.h/.c           # Entropy variance analysis and checks
 │   ├── main.c               # CLI interface and output formatting
-│   └── Makefile             # Builds bincheck
+│   └── Makefile             # Builds bincheck (sets VERSION)
+├── CHANGELOG.md             # Version history
 ├── HOW_IT_WORKS.md          # Technical deep dive into the detection algorithm
 ├── LICENSE                  # BSD 2-Clause License
 ├── Makefile                 # Top-level makefile

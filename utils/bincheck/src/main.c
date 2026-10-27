@@ -41,6 +41,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Normally set by the Makefile (VERSION) */
+#ifndef BINCHECK_VERSION
+#define BINCHECK_VERSION "unknown"
+#endif
+
 /* Extract the program name from argv[0]: strip the directory (both '/' and
  * '\' separators, for Windows) and the extension (e.g. ".exe"). */
 static const char *
@@ -70,14 +75,16 @@ usage(const char *argv0)
     const char *prog = program_name(argv0);
 
     fprintf(stderr,
-        "Sega Dreamcast Binary Checker (bincheck)\n\n"
+        "Sega Dreamcast Binary Checker (bincheck) v%s\n\n"
         "Usage: %s [options] <file.bin>\n\n"
         "Options:\n"
         "  -b <bytes>     Block size for the entropy variance (default: %u)\n"
         "  -m <margin>    Decision threshold, relative increase (default: %.2f)\n"
         "  -v             Verbose mode (show details)\n"
-        "  -h             Show this help\n",
-        prog, BINCHECK_DEFAULT_ENTROPY_BLOCK, BINCHECK_DEFAULT_VARIANCE_MARGIN);
+        "  -h             Show this help\n"
+        "  --version      Show the version\n",
+        BINCHECK_VERSION, prog, BINCHECK_DEFAULT_ENTROPY_BLOCK,
+        BINCHECK_DEFAULT_VARIANCE_MARGIN);
 }
 
 int
@@ -94,6 +101,9 @@ main(int argc, char **argv)
     for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0) {
             usage(argv[0]);
+            return EXIT_SUCCESS;
+        } else if (strcmp(argv[i], "--version") == 0) {
+            printf("Sega Dreamcast Binary Checker (bincheck) v%s\n", BINCHECK_VERSION);
             return EXIT_SUCCESS;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = 1;
