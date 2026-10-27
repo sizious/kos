@@ -16,8 +16,9 @@ Install the KallistiOS headers into the Newlib include directory.
 
   kos_base    KallistiOS root (containing 'include/'). Defaults to \$KOS_BASE.
   newlib_inc  Newlib include directory of the toolchain, e.g.
-              /opt/toolchains/dc/sh-elf/sh-elf/include. Defaults to
-              \$NEWLIB_INC.
+              /opt/toolchains/dc/sh-elf/sh-elf/include. It must exist.
+              Defaults to \$NEWLIB_INC, then to
+              \$KOS_CC_BASE/\$KOS_CC_PREFIX/include (from environ.sh).
 
 Options:
   -c  Copy the 'kos' include directory (default on MinGW/MSYS and MSYS2).
@@ -44,6 +45,9 @@ shift $((OPTIND - 1))
 
 kos_base=${1:-$KOS_BASE}
 newlib_inc=${2:-$NEWLIB_INC}
+if [ -z "$newlib_inc" ] && [ -n "$KOS_CC_BASE" ] && [ -n "$KOS_CC_PREFIX" ]; then
+	newlib_inc=$KOS_CC_BASE/$KOS_CC_PREFIX/include
+fi
 
 if [ -z "$kos_base" ] || [ -z "$newlib_inc" ]; then
 	usage >&2
@@ -52,6 +56,12 @@ fi
 
 if [ ! -d "$kos_base/include/kos" ]; then
 	echo "$(basename "$0"): '$kos_base' is not a KallistiOS directory" >&2
+	exit 1
+fi
+
+# Don't create a stray include directory if the path is wrong
+if [ ! -d "$newlib_inc" ]; then
+	echo "$(basename "$0"): '$newlib_inc' not found, is the toolchain installed?" >&2
 	exit 1
 fi
 
