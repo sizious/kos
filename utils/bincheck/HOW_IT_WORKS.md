@@ -1,6 +1,6 @@
 # How bincheck works
 
-This guide explains how `bincheck` determines whether a Sega Dreamcast `.BIN` program is **scrambled** (the format needed when booting from a CD, usually `1ST_READ.BIN`) or **unscrambled** (a standard, flat binary image). 
+This guide explains how `bincheck` determines whether a Sega Dreamcast `.BIN` program is **scrambled** (the format needed when booting from a CD, usually `1ST_READ.BIN`) or **unscrambled** (a standard, flat binary image).
 
 For build and usage instructions, see [README.md](README.md).
 
@@ -125,7 +125,7 @@ test-u.bin: Unscrambled
 | `test-s.bin` | 1.1451 | 2.6444 | **+131%** | **Scrambled** |
 | `test-u.bin` | 2.6444 | 1.1965 | **−55%** | **Unscrambled** |
 
-Notice that the variance of the scrambled file more than doubles (+131%) once unscrambled, well above the 15% threshold. Conversely, unscrambling the already-unscrambled file cuts its variance in half (−55%). 
+Notice that the variance of the scrambled file more than doubles (+131%) once unscrambled, well above the 15% threshold. Conversely, unscrambling the already-unscrambled file cuts its variance in half (−55%).
 
 Also note that the unscrambled variance of `test-s.bin` (2.6444) matches the original as-is variance of `test-u.bin` (2.6444), as expected since unscrambling restores the original file byte for byte (see [Step 1](#step-1-unscrambling)).
 

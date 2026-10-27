@@ -107,9 +107,9 @@ The warnings shown for ELF or non-SH-4 files do not change the exit code.
 
 In short: `bincheck` creates an unscrambled copy of the file in memory, and then checks which version looks like a real, organized program.
 
-Scrambling does not encrypt or change individual bytes. Instead, it chops the file into 32-byte chunks and shuffles them around. A normal program has organized, distinct sections (code, data tables, and blocks of empty zero bytes). Scrambling mixes all these sections together into an even blend. 
+Scrambling does not encrypt or change individual bytes. Instead, it chops the file into 32-byte chunks and shuffles them around. A normal program has organized, distinct sections (code, data tables, and blocks of empty zero bytes). Scrambling mixes all these sections together into an even blend.
 
-`bincheck` measures how varied the different sections of the file are (using a statistical concept called **entropy variance** across 256-byte blocks). 
+`bincheck` measures how varied the different sections of the file are (using a statistical concept called **entropy variance** across 256-byte blocks).
 - If unscrambling the file makes its internal sections look **much more distinct and organized** (an entropy variance increase of over 15%), the file was scrambled.
 - If the file becomes less organized or stays roughly the same, it was already unscrambled.
 
