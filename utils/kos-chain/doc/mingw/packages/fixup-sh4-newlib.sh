@@ -10,4 +10,4 @@ newlib_inc=${KOS_CC_BASE:-/opt/toolchains/dc/sh-elf}/${KOS_CC_PREFIX:-sh-elf}/in
 # KallistiOS, you'll need to run this tool to update the includes used by the
 # SH4 compiler. The list of headers is maintained in kos-chain's
 # 'scripts/fixup-newlib.sh'; this is just a convenience wrapper.
-exec bash "$kos_base/utils/kos-chain/scripts/fixup-newlib.sh" -c "$kos_base" "$newlib_inc"
+"$kos_base/utils/kos-chain/scripts/fixup-newlib.sh" "$kos_base" "$newlib_inc"
