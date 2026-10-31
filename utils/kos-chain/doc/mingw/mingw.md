@@ -224,14 +224,18 @@ make fixup-newlib-only
 You can also run the `scripts/fixup-newlib.sh` script directly, passing the
 **KallistiOS** directory and the `Newlib` include directory, e.g.:
 ```
-bash ./scripts/fixup-newlib.sh /opt/toolchains/dc/kos /opt/toolchains/dc/sh-elf/sh-elf/include
+./scripts/fixup-newlib.sh /opt/toolchains/dc/kos /opt/toolchains/dc/sh-elf/sh-elf/include
 ```
 If the **KallistiOS** `environ.sh` file has been sourced, both arguments can
 be omitted, as they are read from `KOS_BASE`, `KOS_CC_BASE` and
 `KOS_CC_PREFIX`.
 
 The provided `packages/fixup-sh4-newlib.sh` script is a wrapper around it,
-using these variables or the default `/opt/toolchains/dc` paths.
+using these variables or the default `/opt/toolchains/dc` paths. Run it by
+entering:
+```
+./doc/mingw/packages/fixup-sh4-newlib.sh
+```
 
 ## Next steps ##
 
